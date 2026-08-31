@@ -9,6 +9,7 @@ const elements = {
   empty: document.querySelector("#empty"),
   feedback: document.querySelector("#feedback"),
   filters: document.querySelector("#filters"),
+  loader: document.querySelector("#loader"),
   pagination: document.querySelector("#pagination"),
   search: document.querySelector("#search"),
   showIgnored: document.querySelector("#show-ignored"),
@@ -77,8 +78,14 @@ async function bootstrap() {
       loadIgnoredSlugs("./data/anime-ignored.json"),
       loadGenres("./data/genres.json"),
     ]);
+    if (elements.loader) {
+      elements.loader.hidden = true;
+    }
     createCatalogController(elements, { all: allItems, filtered: filteredItems }, ignoredSlugs, genres);
   } catch (error) {
+    if (elements.loader) {
+      elements.loader.hidden = true;
+    }
     elements.empty.hidden = false;
     elements.empty.textContent = "Не вдалося завантажити каталог.";
     console.error(error);
