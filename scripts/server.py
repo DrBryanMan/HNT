@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve the catalog SPA and allow deleting entries from data/anime.json."""
+"""Generate and serve both complete and filtered Hikka anime catalogs."""
 
 from __future__ import annotations
 
@@ -10,11 +10,15 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from filter_anime_catalog import DEFAULT_OUTPUT as FILTERED_DATA_FILE
+from filter_anime_catalog import generate_filtered_catalog
+
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5173
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = ROOT_DIR / "data" / "anime.json"
+IGNORED_FILE = ROOT_DIR / "data" / "anime-ignored.json"
 
 
 class CatalogRequestHandler(SimpleHTTPRequestHandler):
@@ -37,7 +41,7 @@ class CatalogRequestHandler(SimpleHTTPRequestHandler):
         except FileNotFoundError:
             self.send_error(HTTPStatus.NOT_FOUND, "Catalog file not found")
             return
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Catalog JSON is invalid")
             return
 
@@ -46,6 +50,25 @@ class CatalogRequestHandler(SimpleHTTPRequestHandler):
             return
 
         self.send_json({"removed": slug})
+
+    def do_POST(self) -> None:
+        parsed_url = urlparse(self.path)
+        if not parsed_url.path.startswith("/api/ignored/"):
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+
+        slug = unquote(parsed_url.path.removeprefix("/api/ignored/"))
+        if not slug:
+            self.send_error(HTTPStatus.BAD_REQUEST, "Missing slug")
+            return
+
+        try:
+            ignored = ignore_anime(slug)
+        except json.JSONDecodeError:
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Ignored JSON is invalid")
+            return
+
+        self.send_json({"ignored": slug, "already_ignored": str(not ignored).lower()})
 
     def send_json(self, payload: dict[str, str]) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -57,15 +80,31 @@ class CatalogRequestHandler(SimpleHTTPRequestHandler):
 
 
 def delete_anime(slug: str) -> bool:
-    items = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    items = json.loads(FILTERED_DATA_FILE.read_text(encoding="utf-8"))
     filtered_items = [item for item in items if item.get("slug") != slug]
 
     if len(filtered_items) == len(items):
         return False
 
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FILE.write_text(
+    FILTERED_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    FILTERED_DATA_FILE.write_text(
         json.dumps(filtered_items, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return True
+
+
+def ignore_anime(slug: str) -> bool:
+    ignored_slugs = json.loads(IGNORED_FILE.read_text(encoding="utf-8")) if IGNORED_FILE.exists() else []
+    if not isinstance(ignored_slugs, list):
+        raise ValueError("Ignored catalog must be a JSON array")
+    if slug in ignored_slugs:
+        return False
+
+    ignored_slugs.append(slug)
+    IGNORED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    IGNORED_FILE.write_text(
+        json.dumps(ignored_slugs, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     return True
@@ -80,9 +119,18 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    try:
+        saved, removed, created = generate_filtered_catalog()
+    except (FileNotFoundError, json.JSONDecodeError, RuntimeError, ValueError) as error:
+        raise SystemExit(f"Could not generate filtered catalog: {error}") from error
+
+    print(
+        f"{'Created' if created else 'Pruned'} {FILTERED_DATA_FILE} "
+        f"({saved} titles remain; {removed} removed)"
+    )
     server = ThreadingHTTPServer((args.host, args.port), CatalogRequestHandler)
     print(f"Serving catalog at http://{args.host}:{args.port}")
-    print(f"Editing {DATA_FILE}")
+    print(f"Source catalog: {DATA_FILE}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -21,6 +21,10 @@ function normalizeItem(item) {
     titleUa: item.title_ua || "",
     titleJa: item.title_ja || "",
     image: item.image || "",
+    releaseCount: Number.isInteger(Number(item.release_count)) ? Number(item.release_count) : 0,
+    releaseTeams: Array.isArray(item.release_teams)
+      ? item.release_teams.filter((team) => team && team.name)
+      : [],
     score: Number.isFinite(Number(item.score)) ? Number(item.score) : null,
     slug: item.slug,
     hikkaUrl: `${HIKKA_ANIME_URL}${item.slug}`,

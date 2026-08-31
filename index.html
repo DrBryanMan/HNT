@@ -29,6 +29,22 @@
         </div>
 
         <form class="toolbar" id="filters">
+          <label class="field field--toggle">
+            <span>Режим каталогу</span>
+            <span class="toggle-control">
+              <input id="show-all" type="checkbox" />
+              Показати всі тайтли
+            </span>
+          </label>
+
+          <label class="field field--toggle">
+            <span>Приховані тайтли</span>
+            <span class="toggle-control">
+              <input id="show-ignored" type="checkbox" />
+              Показати ігноровані
+            </span>
+          </label>
+
           <label class="field">
             <span>Пошук</span>
             <input id="search" type="search" autocomplete="off" placeholder="Назва або slug" />
@@ -57,6 +73,14 @@
         <div class="toast" id="feedback" role="status" aria-live="polite" hidden></div>
       </section>
     </main>
+
+    <dialog class="release-modal" id="release-modal" aria-labelledby="release-modal-title">
+      <div class="release-modal__header">
+        <h2 id="release-modal-title">Команди релізу</h2>
+        <button class="release-modal__close" id="release-modal-close" type="button" aria-label="Закрити">×</button>
+      </div>
+      <ul class="release-modal__teams" id="release-modal-teams"></ul>
+    </dialog>
 
     <script type="module" src="./src/main.js"></script>
   </body>

@@ -3,8 +3,11 @@ import { formatMediaType, formatScore, getDisplayTitle } from "./formatters.js";
 const PAGE_SIZE = 50;
 const PAGINATION_RADIUS = 2;
 
-export function createCatalogController(elements, items) {
+export function createCatalogController(elements, catalogs, ignoredSlugs) {
   const state = {
+    catalogMode: "filtered",
+    ignoredSlugs,
+    showIgnored: false,
     page: 1,
     query: "",
     type: "all",
@@ -16,13 +19,13 @@ export function createCatalogController(elements, items) {
 
     try {
       await deleteCatalogItem(item.slug);
-      const itemIndex = items.findIndex((entry) => entry.slug === item.slug);
+      const itemIndex = catalogs.filtered.findIndex((entry) => entry.slug === item.slug);
       if (itemIndex !== -1) {
-        items.splice(itemIndex, 1);
+        catalogs.filtered.splice(itemIndex, 1);
       }
-      setFeedback(elements, `Видалено "${getDisplayTitle(item)}" з JSON.`, "success");
-      syncTypeFilter(elements.typeFilter, items, state);
-      render(elements, items, state, deleteItem);
+      setFeedback(elements, `Видалено "${getDisplayTitle(item)}" з відфільтрованого JSON.`, "success");
+      syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+      render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
     } catch (error) {
       setFeedback(
         elements,
@@ -33,19 +36,65 @@ export function createCatalogController(elements, items) {
     }
   }
 
-  fillTypeFilter(elements.typeFilter, items);
-  render(elements, items, state, deleteItem);
+  async function ignoreItem(item) {
+    setFeedback(elements, `Ігнорую "${getDisplayTitle(item)}"...`, "info");
+    try {
+      await ignoreCatalogItem(item.slug);
+      ignoredSlugs.add(item.slug);
+      setFeedback(elements, `Додано "${getDisplayTitle(item)}" до ігнорованих.`, "success");
+      syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+      render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+    } catch (error) {
+      setFeedback(elements, "Не вдалося зберегти ігнорований тайтл.", "error");
+      console.error(error);
+    }
+  }
+
+  function showReleaseTeams(item) {
+    elements.releaseModalTeams.replaceChildren(
+      ...item.releaseTeams.map((team) => createReleaseTeam(team)),
+    );
+    elements.releaseModal.showModal();
+  }
+
+  const closeReleaseModal = () => elements.releaseModal.close();
+  elements.releaseModalClose.addEventListener("click", closeReleaseModal);
+  elements.releaseModal.addEventListener("click", (event) => {
+    if (event.target === elements.releaseModal) {
+      closeReleaseModal();
+    }
+  });
+
+  fillTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs));
+  render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
 
   const updateFilters = () => {
     state.query = elements.search.value.trim().toLowerCase();
     state.type = elements.typeFilter.value;
     state.sort = elements.sortOrder.value;
     state.page = 1;
-    render(elements, items, state, deleteItem);
+    render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
   };
 
   elements.filters.addEventListener("input", updateFilters);
   elements.filters.addEventListener("change", updateFilters);
+
+  elements.showAll.addEventListener("change", () => {
+    state.catalogMode = elements.showAll.checked ? "all" : "filtered";
+    state.page = 1;
+    syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+    elements.title.textContent = elements.showAll.checked
+      ? "Усі тайтли"
+      : "Тайтли без українського перекладу";
+    render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+  });
+
+  elements.showIgnored.addEventListener("change", () => {
+    state.showIgnored = elements.showIgnored.checked;
+    state.page = 1;
+    syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+    render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+  });
 }
 
 async function deleteCatalogItem(slug) {
@@ -55,6 +104,13 @@ async function deleteCatalogItem(slug) {
 
   if (!response.ok) {
     throw new Error(`Delete failed with ${response.status}`);
+  }
+}
+
+async function ignoreCatalogItem(slug) {
+  const response = await fetch(`/api/ignored/${encodeURIComponent(slug)}`, { method: "POST" });
+  if (!response.ok) {
+    throw new Error(`Ignore failed with ${response.status}`);
   }
 }
 
@@ -83,7 +139,16 @@ function createTypeOption(value, label) {
   return option;
 }
 
-function render(elements, items, state, onDelete) {
+function getActiveItems(catalogs, state, ignoredSlugs) {
+  const items = catalogs[state.catalogMode];
+  if (state.catalogMode === "all" || state.showIgnored) {
+    return items;
+  }
+  return items.filter((item) => !ignoredSlugs.has(item.slug));
+}
+
+function render(elements, catalogs, state, onDelete, onIgnore, onShowReleaseTeams) {
+  const items = getActiveItems(catalogs, state, state.ignoredSlugs);
   const visibleItems = getVisibleItems(items, state);
   const totalPages = getTotalPages(visibleItems.length);
   state.page = clampPage(state.page, totalPages);
@@ -92,11 +157,13 @@ function render(elements, items, state, onDelete) {
   const pageItems = visibleItems.slice(pageStart, pageStart + PAGE_SIZE);
   const pageEnd = pageStart + pageItems.length;
 
-  elements.catalog.replaceChildren(...pageItems.map((item) => createCard(item, onDelete)));
+  elements.catalog.replaceChildren(
+    ...pageItems.map((item) => createCard(item, onDelete, onIgnore, onShowReleaseTeams)),
+  );
   elements.empty.hidden = visibleItems.length > 0;
   elements.stats.textContent = getStatsText(pageStart, pageEnd, visibleItems.length, items.length);
   renderPagination(elements.pagination, state, totalPages, () => {
-    render(elements, items, state, onDelete);
+    render(elements, catalogs, state, onDelete, onIgnore, onShowReleaseTeams);
   });
 }
 
@@ -233,7 +300,7 @@ function scoreValue(item) {
   return item.score ?? -1;
 }
 
-function createCard(item, onDelete) {
+function createCard(item, onDelete, onIgnore, onShowReleaseTeams) {
   const card = document.createElement("article");
   card.className = "anime-card";
 
@@ -256,9 +323,28 @@ function createCard(item, onDelete) {
   const deleteButton = document.createElement("button");
   deleteButton.className = "anime-card__delete";
   deleteButton.type = "button";
-  deleteButton.textContent = "Видалити";
+  deleteButton.textContent = "×";
   deleteButton.setAttribute("aria-label", `Видалити ${getDisplayTitle(item)}`);
   deleteButton.addEventListener("click", () => onDelete(item));
+
+  const ignoreButton = document.createElement("button");
+  ignoreButton.className = "anime-card__ignore";
+  ignoreButton.type = "button";
+  ignoreButton.textContent = "⊘";
+  ignoreButton.setAttribute("aria-label", `Ігнорувати ${getDisplayTitle(item)}`);
+  ignoreButton.addEventListener("click", () => onIgnore(item));
+
+  const actions = document.createElement("div");
+  actions.className = "anime-card__actions";
+  actions.append(ignoreButton, deleteButton);
+
+  const releaseButton = document.createElement("button");
+  releaseButton.className = "anime-card__releases";
+  releaseButton.type = "button";
+  releaseButton.textContent = `Релізів: ${item.releaseCount}`;
+  releaseButton.hidden = item.releaseCount === 0 || item.releaseTeams.length === 0;
+  releaseButton.setAttribute("aria-label", `Показати команди релізу: ${item.releaseCount}`);
+  releaseButton.addEventListener("click", () => onShowReleaseTeams(item));
 
   const body = document.createElement("div");
   body.className = "anime-card__body";
@@ -278,11 +364,29 @@ function createCard(item, onDelete) {
   link.rel = "noreferrer";
   link.setAttribute("aria-label", `Відкрити ${getDisplayTitle(item)} на Hikka`);
 
-  posterWrap.append(poster, meta, deleteButton);
+  posterWrap.append(poster, meta, releaseButton, actions);
   body.append(title, originalTitle);
   card.append(posterWrap, body, link);
 
   return card;
+}
+
+function createReleaseTeam(team) {
+  const entry = document.createElement("li");
+  entry.className = "release-modal__team";
+
+  if (team.logo) {
+    const logo = document.createElement("img");
+    logo.className = "release-modal__team-logo";
+    logo.src = team.logo;
+    logo.alt = "";
+    entry.append(logo);
+  }
+
+  const name = document.createElement("span");
+  name.textContent = team.name;
+  entry.append(name);
+  return entry;
 }
 
 function createBadge(text, className) {
