@@ -1,5 +1,8 @@
 import { loadCatalog } from "./modules/catalog-data.js";
 import { createCatalogController } from "./modules/catalog-view.js";
+import { renderIcon } from "./modules/icons.js";
+
+const THEME_STORAGE_KEY = "hikka-filter-theme";
 
 const elements = {
   catalog: document.querySelector("#catalog"),
@@ -17,9 +20,38 @@ const elements = {
   releaseModal: document.querySelector("#release-modal"),
   releaseModalClose: document.querySelector("#release-modal-close"),
   releaseModalTeams: document.querySelector("#release-modal-teams"),
+  themeToggle: document.querySelector("#theme-toggle"),
 };
 
+function initTheme() {
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+  applyTheme(storedTheme ?? (prefersLight ? "light" : "dark"));
+
+  elements.themeToggle?.addEventListener("click", () => {
+    const nextTheme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    applyTheme(nextTheme);
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  });
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+
+  if (!elements.themeToggle) {
+    return;
+  }
+
+  renderIcon(elements.themeToggle, theme === "light" ? "moon" : "sun");
+  elements.themeToggle.setAttribute(
+    "aria-label",
+    theme === "light" ? "Увімкнути темну тему" : "Увімкнути світлу тему",
+  );
+}
+
 async function bootstrap() {
+  renderIcon(document.querySelector("#search-icon"), "search", 16);
+
   try {
     const [filteredItems, allItems, ignoredSlugs] = await Promise.all([
       loadCatalog("./data/anime-filtered.json"),
@@ -43,4 +75,5 @@ async function loadIgnoredSlugs(url) {
   return new Set(Array.isArray(slugs) ? slugs.filter((slug) => typeof slug === "string") : []);
 }
 
+initTheme();
 bootstrap();

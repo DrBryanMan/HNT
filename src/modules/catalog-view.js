@@ -1,4 +1,5 @@
 import { formatMediaType, formatScore, getDisplayTitle } from "./formatters.js";
+import { iconMarkup } from "./icons.js";
 
 const PAGE_SIZE = 50;
 const PAGINATION_RADIUS = 2;
@@ -13,6 +14,8 @@ export function createCatalogController(elements, catalogs, ignoredSlugs) {
     type: "all",
     sort: "score-desc",
   };
+
+  elements.releaseModalClose.innerHTML = iconMarkup("x", 18);
 
   async function deleteItem(item) {
     setFeedback(elements, `Видаляю "${getDisplayTitle(item)}"...`, "info");
@@ -125,7 +128,7 @@ function syncTypeFilter(select, items, state) {
 }
 
 function fillTypeFilter(select, items) {
-  const types = [...new Set(items.map((item) => item.mediaType))].sort();
+  const types = [...new Set(items.map((item) => item.mediaType))].toSorted();
 
   for (const type of types) {
     select.append(createTypeOption(type, formatMediaType(type)));
@@ -155,13 +158,15 @@ function render(elements, catalogs, state, onDelete, onIgnore, onShowReleaseTeam
 
   const pageStart = (state.page - 1) * PAGE_SIZE;
   const pageItems = visibleItems.slice(pageStart, pageStart + PAGE_SIZE);
-  const pageEnd = pageStart + pageItems.length;
+  const showReleaseButton = state.catalogMode === "all";
 
   elements.catalog.replaceChildren(
-    ...pageItems.map((item) => createCard(item, onDelete, onIgnore, onShowReleaseTeams)),
+    ...pageItems.map((item) =>
+      createCard(item, showReleaseButton, onDelete, onIgnore, onShowReleaseTeams),
+    ),
   );
   elements.empty.hidden = visibleItems.length > 0;
-  elements.stats.textContent = getStatsText(pageStart, pageEnd, visibleItems.length, items.length);
+  elements.stats.textContent = getStatsText(visibleItems.length);
   renderPagination(elements.pagination, state, totalPages, () => {
     render(elements, catalogs, state, onDelete, onIgnore, onShowReleaseTeams);
   });
@@ -175,12 +180,8 @@ function clampPage(page, totalPages) {
   return Math.min(Math.max(page, 1), totalPages);
 }
 
-function getStatsText(pageStart, pageEnd, visibleCount, totalCount) {
-  if (visibleCount === 0) {
-    return `0 з ${totalCount} тайтлів`;
-  }
-
-  return `${pageStart + 1}-${pageEnd} з ${visibleCount} тайтлів`;
+function getStatsText(totalCount) {
+  return `${totalCount} тайтлів`;
 }
 
 function renderPagination(container, state, totalPages, onPageChange) {
@@ -191,23 +192,19 @@ function renderPagination(container, state, totalPages, onPageChange) {
     return;
   }
 
-  const summary = document.createElement("span");
-  summary.className = "pagination__summary";
-  summary.textContent = `Сторінка ${state.page} з ${totalPages}`;
-
   const controls = document.createElement("div");
   controls.className = "pagination__controls";
   controls.append(
-    createPageButton("Назад", state.page - 1, state.page === 1, state, onPageChange),
+    createNavButton("Назад", "chevron-left", "start", state.page - 1, state.page === 1, state, onPageChange),
     ...getPageItems(state.page, totalPages).map((page) =>
       page === "ellipsis"
         ? createPaginationEllipsis()
-        : createPageButton(String(page), page, false, state, onPageChange),
+        : createPageButton(String(page), page, state, onPageChange),
     ),
-    createPageButton("Далі", state.page + 1, state.page === totalPages, state, onPageChange),
+    createNavButton("Далі", "chevron-right", "end", state.page + 1, state.page === totalPages, state, onPageChange),
   );
 
-  container.append(summary, controls);
+  container.append(controls);
 }
 
 function getPageItems(currentPage, totalPages) {
@@ -240,17 +237,36 @@ function createPaginationEllipsis() {
   return ellipsis;
 }
 
-function createPageButton(label, page, disabled, state, onPageChange) {
+function createPageButton(label, page, state, onPageChange) {
   const button = document.createElement("button");
   button.className = "pagination__button";
   button.type = "button";
   button.textContent = label;
-  button.disabled = disabled;
 
   if (page === state.page) {
     button.classList.add("pagination__button--active");
     button.setAttribute("aria-current", "page");
   }
+
+  button.addEventListener("click", () => {
+    state.page = page;
+    onPageChange();
+    scrollToCatalogTop();
+  });
+
+  return button;
+}
+
+function createNavButton(label, icon, iconPosition, page, disabled, state, onPageChange) {
+  const button = document.createElement("button");
+  button.className = "pagination__button pagination__button--nav";
+  button.type = "button";
+  button.disabled = disabled;
+  button.setAttribute("aria-label", label);
+
+  const iconHtml = iconMarkup(icon, 14);
+  const labelHtml = `<span>${label}</span>`;
+  button.innerHTML = iconPosition === "start" ? `${iconHtml}${labelHtml}` : `${labelHtml}${iconHtml}`;
 
   button.addEventListener("click", () => {
     state.page = page;
@@ -272,7 +288,7 @@ function getVisibleItems(items, state) {
   return items
     .filter((item) => matchesQuery(item, state.query))
     .filter((item) => state.type === "all" || item.mediaType === state.type)
-    .sort((left, right) => compareItems(left, right, state.sort));
+    .toSorted((left, right) => compareItems(left, right, state.sort));
 }
 
 function matchesQuery(item, query) {
@@ -300,7 +316,7 @@ function scoreValue(item) {
   return item.score ?? -1;
 }
 
-function createCard(item, onDelete, onIgnore, onShowReleaseTeams) {
+function createCard(item, showReleaseButton, onDelete, onIgnore, onShowReleaseTeams) {
   const card = document.createElement("article");
   card.className = "anime-card";
 
@@ -320,31 +336,35 @@ function createCard(item, onDelete, onIgnore, onShowReleaseTeams) {
     createBadge(formatScore(item.score), getScoreBadgeClass(item.score)),
   );
 
-  const deleteButton = document.createElement("button");
-  deleteButton.className = "anime-card__delete";
-  deleteButton.type = "button";
-  deleteButton.textContent = "×";
-  deleteButton.setAttribute("aria-label", `Видалити ${getDisplayTitle(item)}`);
-  deleteButton.addEventListener("click", () => onDelete(item));
-
-  const ignoreButton = document.createElement("button");
-  ignoreButton.className = "anime-card__ignore";
-  ignoreButton.type = "button";
-  ignoreButton.textContent = "⊘";
-  ignoreButton.setAttribute("aria-label", `Ігнорувати ${getDisplayTitle(item)}`);
-  ignoreButton.addEventListener("click", () => onIgnore(item));
-
   const actions = document.createElement("div");
   actions.className = "anime-card__actions";
-  actions.append(ignoreButton, deleteButton);
+  actions.append(
+    createActionButton({
+      className: "anime-card__ignore",
+      icon: "ban",
+      ariaLabel: `Ігнорувати ${getDisplayTitle(item)}`,
+      onClick: () => onIgnore(item),
+    }),
+    createActionButton({
+      className: "anime-card__delete",
+      icon: "x",
+      ariaLabel: `Видалити ${getDisplayTitle(item)}`,
+      onClick: () => onDelete(item),
+    }),
+  );
 
-  const releaseButton = document.createElement("button");
-  releaseButton.className = "anime-card__releases";
-  releaseButton.type = "button";
-  releaseButton.textContent = `Релізів: ${item.releaseCount}`;
-  releaseButton.hidden = item.releaseCount === 0 || item.releaseTeams.length === 0;
-  releaseButton.setAttribute("aria-label", `Показати команди релізу: ${item.releaseCount}`);
-  releaseButton.addEventListener("click", () => onShowReleaseTeams(item));
+  const posterExtras = [meta, actions];
+
+  if (showReleaseButton) {
+    const releaseButton = document.createElement("button");
+    releaseButton.className = "anime-card__releases";
+    releaseButton.type = "button";
+    releaseButton.innerHTML = `${iconMarkup("users", 14)}<span>Релізів: ${item.releaseCount}</span>`;
+    releaseButton.hidden = item.releaseCount === 0 || item.releaseTeams.length === 0;
+    releaseButton.setAttribute("aria-label", `Показати команди релізу: ${item.releaseCount}`);
+    releaseButton.addEventListener("click", () => onShowReleaseTeams(item));
+    posterExtras.push(releaseButton);
+  }
 
   const body = document.createElement("div");
   body.className = "anime-card__body";
@@ -364,11 +384,21 @@ function createCard(item, onDelete, onIgnore, onShowReleaseTeams) {
   link.rel = "noreferrer";
   link.setAttribute("aria-label", `Відкрити ${getDisplayTitle(item)} на Hikka`);
 
-  posterWrap.append(poster, meta, releaseButton, actions);
+  posterWrap.append(poster, ...posterExtras);
   body.append(title, originalTitle);
   card.append(posterWrap, body, link);
 
   return card;
+}
+
+function createActionButton({ className, icon, ariaLabel, onClick }) {
+  const button = document.createElement("button");
+  button.className = `anime-card__action-btn ${className}`;
+  button.type = "button";
+  button.innerHTML = iconMarkup(icon, 16);
+  button.setAttribute("aria-label", ariaLabel);
+  button.addEventListener("click", onClick);
+  return button;
 }
 
 function createReleaseTeam(team) {

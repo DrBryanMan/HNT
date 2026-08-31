@@ -11,11 +11,7 @@
       <a class="brand" href="https://hikka.io" target="_blank" rel="noreferrer">
         Hikka Filter
       </a>
-      <!-- <nav class="nav" aria-label="Основна навігація">
-        <a href="https://hikka.io/anime" target="_blank" rel="noreferrer">Аніме</a>
-        <a href="https://hikka.io/manga" target="_blank" rel="noreferrer">Манґа</a>
-        <a href="https://hikka.io/novel" target="_blank" rel="noreferrer">Ранобе</a>
-      </nav> -->
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Увімкнути світлу тему"></button>
     </header>
 
     <main class="app">
@@ -25,29 +21,31 @@
             <p class="eyebrow">Anime catalog</p>
             <h1 id="page-title">Тайтли без українського перекладу</h1>
           </div>
-          <div class="stats" id="stats" aria-live="polite">0 тайтлів</div>
+
+          <div class="header-toggles" role="group" aria-label="Режими каталогу">
+            <label class="toggle-pill">
+              <input id="show-all" type="checkbox" />
+              Показати всі тайтли
+            </label>
+            <label class="toggle-pill">
+              <input id="show-ignored" type="checkbox" />
+              Показати ігноровані
+            </label>
+          </div>
         </div>
 
         <form class="toolbar" id="filters">
-          <label class="field field--toggle">
-            <span>Режим каталогу</span>
-            <span class="toggle-control">
-              <input id="show-all" type="checkbox" />
-              Показати всі тайтли
-            </span>
-          </label>
+          <div class="field field--stats">
+            <span>Всього</span>
+            <div class="stats" id="stats" aria-live="polite">0 тайтлів</div>
+          </div>
 
-          <label class="field field--toggle">
-            <span>Приховані тайтли</span>
-            <span class="toggle-control">
-              <input id="show-ignored" type="checkbox" />
-              Показати ігноровані
-            </span>
-          </label>
-
-          <label class="field">
+          <label class="field field--search">
             <span>Пошук</span>
-            <input id="search" type="search" autocomplete="off" placeholder="Назва або slug" />
+            <span class="input-wrap">
+              <span class="input-icon" id="search-icon"></span>
+              <input id="search" type="search" autocomplete="off" placeholder="Назва або slug" />
+            </span>
           </label>
 
           <label class="field field--compact">
@@ -77,7 +75,7 @@
     <dialog class="release-modal" id="release-modal" aria-labelledby="release-modal-title">
       <div class="release-modal__header">
         <h2 id="release-modal-title">Команди релізу</h2>
-        <button class="release-modal__close" id="release-modal-close" type="button" aria-label="Закрити">×</button>
+        <button class="release-modal__close" id="release-modal-close" type="button" aria-label="Закрити"></button>
       </div>
       <ul class="release-modal__teams" id="release-modal-teams"></ul>
     </dialog>
