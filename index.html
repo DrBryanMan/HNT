@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Каталог перекладача</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://hikka.io" target="_blank" rel="noreferrer">
+        Hikka Filter
+      </a>
+      <!-- <nav class="nav" aria-label="Основна навігація">
+        <a href="https://hikka.io/anime" target="_blank" rel="noreferrer">Аніме</a>
+        <a href="https://hikka.io/manga" target="_blank" rel="noreferrer">Манґа</a>
+        <a href="https://hikka.io/novel" target="_blank" rel="noreferrer">Ранобе</a>
+      </nav> -->
+    </header>
+
+    <main class="app">
+      <section class="catalog-shell" aria-labelledby="page-title">
+        <div class="catalog-header">
+          <div>
+            <p class="eyebrow">Anime catalog</p>
+            <h1 id="page-title">Тайтли без українського перекладу</h1>
+          </div>
+          <div class="stats" id="stats" aria-live="polite">0 тайтлів</div>
+        </div>
+
+        <form class="toolbar" id="filters">
+          <label class="field">
+            <span>Пошук</span>
+            <input id="search" type="search" autocomplete="off" placeholder="Назва або slug" />
+          </label>
+
+          <label class="field field--compact">
+            <span>Тип</span>
+            <select id="type-filter">
+              <option value="all">Усі</option>
+            </select>
+          </label>
+
+          <label class="field field--compact">
+            <span>Сортування</span>
+            <select id="sort-order">
+              <option value="score-desc">Рейтинг ↓</option>
+              <option value="score-asc">Рейтинг ↑</option>
+              <option value="title-asc">Назва А-Я</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="grid" id="catalog" aria-live="polite"></div>
+        <nav class="pagination" id="pagination" aria-label="Пагінація каталогу"></nav>
+        <p class="empty" id="empty" hidden>Нічого не знайдено.</p>
+        <div class="toast" id="feedback" role="status" aria-live="polite" hidden></div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
