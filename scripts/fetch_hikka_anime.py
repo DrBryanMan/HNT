@@ -36,8 +36,7 @@ Hikka Anime Parser — будує JSON-каталог аніме з Hikka.
 
 Поля запису в data/anime.json
 ──────────────────────────────
-  media_type, title_ua, title_en, title_ja, image, score,
-  status, translated_ua, slug
+  media_type, title_ua, title_en, title_ja, image, score, year, genres, status, translated_ua, slug
 """
 
 from __future__ import annotations
@@ -167,10 +166,21 @@ def normalize_anime(item: dict[str, Any]) -> dict[str, Any]:
         "title_ja": item.get("title_ja"),
         "image": item.get("image"),
         "score": item.get("score"),
+        "year": item.get("year"),
+        "genres": normalize_genres(item.get("genres")),
         "status": item.get("status"),
         "translated_ua": item.get("translated_ua"),
         "slug": item.get("slug"),
     }
+
+def normalize_genres(genres: Any) -> list[dict[str, Any]]:
+    if not isinstance(genres, list):
+        return []
+    return [
+        {"name_ua": genre.get("name_ua"), "name_en": genre.get("name_en"), "type": genre.get("type")}
+        for genre in genres
+        if isinstance(genre, dict)
+    ]
 
 
 def dedupe_by_slug(items: list[dict[str, Any]]) -> list[dict[str, Any]]:

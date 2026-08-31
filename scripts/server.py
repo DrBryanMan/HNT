@@ -10,6 +10,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from build_genres_catalog import build_genres_catalog
 from filter_anime_catalog import DEFAULT_OUTPUT as FILTERED_DATA_FILE
 from filter_anime_catalog import generate_filtered_catalog
 
@@ -19,6 +20,7 @@ DEFAULT_PORT = 5173
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = ROOT_DIR / "data" / "anime.json"
 IGNORED_FILE = ROOT_DIR / "data" / "anime-ignored.json"
+GENRES_FILE = ROOT_DIR / "data" / "genres.json"
 
 
 class CatalogRequestHandler(SimpleHTTPRequestHandler):
@@ -128,6 +130,14 @@ def main() -> None:
         f"{'Created' if created else 'Pruned'} {FILTERED_DATA_FILE} "
         f"({saved} titles remain; {removed} removed)"
     )
+
+    try:
+        genres_count = build_genres_catalog(source_path=DATA_FILE, output_path=GENRES_FILE)
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as error:
+        raise SystemExit(f"Could not build genres catalog: {error}") from error
+
+    print(f"Saved {GENRES_FILE}: {genres_count} unique genres/themes")
+
     server = ThreadingHTTPServer((args.host, args.port), CatalogRequestHandler)
     print(f"Serving catalog at http://{args.host}:{args.port}")
     print(f"Source catalog: {DATA_FILE}")

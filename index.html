@@ -17,53 +17,115 @@
     <main class="app">
       <section class="catalog-shell" aria-labelledby="page-title">
         <div class="catalog-header">
-          <div>
+          <div class="catalog-header__top">
             <p class="eyebrow">Anime catalog</p>
             <h1 id="page-title">Тайтли без українського перекладу</h1>
           </div>
 
-          <div class="header-toggles" role="group" aria-label="Режими каталогу">
-            <label class="toggle-pill">
-              <input id="show-all" type="checkbox" />
-              Показати всі тайтли
-            </label>
-            <label class="toggle-pill">
-              <input id="show-ignored" type="checkbox" />
-              Показати ігноровані
-            </label>
+          <div class="catalog-header__bar">
+            <div class="field field--stats">
+              <span>Всього</span>
+              <div class="stats" id="stats" aria-live="polite">0</div>
+            </div>
+
+            <div class="catalog-header__search">
+              <label class="search-wrap">
+                <span class="input-wrap">
+                  <span class="input-icon" id="search-icon"></span>
+                  <input id="search" type="search" autocomplete="off" placeholder="Назва або slug" />
+                </span>
+              </label>
+            </div>
+
+            <div class="header-toggles" role="group" aria-label="Режими каталогу">
+              <label class="toggle-pill">
+                <input id="show-all" type="checkbox" />
+                Показати всі тайтли
+              </label>
+              <label class="toggle-pill">
+                <input id="show-ignored" type="checkbox" />
+                Показати ігноровані
+              </label>
+            </div>
           </div>
         </div>
 
         <form class="toolbar" id="filters">
-          <div class="field field--stats">
-            <span>Всього</span>
-            <div class="stats" id="stats" aria-live="polite">0 тайтлів</div>
+          <div class="field field--compact" id="type-filter-wrap">
+            <span>Тип</span>
+            <div id="type-filter-container"></div>
           </div>
 
-          <label class="field field--search">
-            <span>Пошук</span>
-            <span class="input-wrap">
-              <span class="input-icon" id="search-icon"></span>
-              <input id="search" type="search" autocomplete="off" placeholder="Назва або slug" />
-            </span>
-          </label>
-
-          <label class="field field--compact">
-            <span>Тип</span>
-            <select id="type-filter">
-              <option value="all">Усі</option>
-            </select>
-          </label>
-
-          <label class="field field--compact">
+          <div class="field field--compact" id="sort-order-wrap">
             <span>Сортування</span>
-            <select id="sort-order">
-              <option value="score-desc">Рейтинг ↓</option>
-              <option value="score-asc">Рейтинг ↑</option>
-              <option value="title-asc">Назва А-Я</option>
-            </select>
-          </label>
+            <div id="sort-order-container"></div>
+          </div>
+
+          <div class="field field--compact field--genres" id="genre-field">
+            <span>Жанри</span>
+            <button
+              class="genre-trigger"
+              id="genre-trigger"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false"
+              data-has-selection="false"
+            >
+              <span class="genre-trigger__label" id="genre-trigger-label">Виберіть жанр/жанри...</span>
+              <span class="genre-trigger__icon" id="genre-trigger-icon"></span>
+            </button>
+
+            <div class="genre-panel" id="genre-panel" hidden>
+              <div class="genre-panel__search">
+                <span class="input-wrap">
+                  <span class="input-icon" id="genre-search-icon"></span>
+                  <input id="genre-search" type="search" autocomplete="off" placeholder="Назва жанру..." />
+                </span>
+              </div>
+              <div class="genre-panel__list" id="genre-list"></div>
+            </div>
+          </div>
+
+          <div class="field field--year-range" id="year-filter-wrap">
+            <span>Шкала року</span>
+            <div class="year-range" id="year-range-container">
+              <span class="year-range__badge" id="year-from-badge">1917</span>
+              <div class="year-range__slider">
+                <div class="year-range__track"></div>
+                <div class="year-range__fill" id="year-range-fill"></div>
+                <input
+                  type="range"
+                  id="year-min-slider"
+                  class="year-range__input year-range__input--min"
+                  min="1917"
+                  max="2027"
+                  step="1"
+                  value="1917"
+                  aria-label="Рік від"
+                />
+                <input
+                  type="range"
+                  id="year-max-slider"
+                  class="year-range__input year-range__input--max"
+                  min="1917"
+                  max="2027"
+                  step="1"
+                  value="2027"
+                  aria-label="Рік до"
+                />
+              </div>
+              <span class="year-range__badge" id="year-to-badge">2027</span>
+            </div>
+          </div>
         </form>
+
+        <div class="genre-tags" id="genre-tags" hidden>
+          <div class="genre-tags__list" id="genre-tags-list"></div>
+          <button class="genre-tags__reset" id="genre-tags-reset" type="button">
+            <span id="genre-tags-reset-icon"></span>
+            Скинути все
+          </button>
+        </div>
 
         <div class="grid" id="catalog" aria-live="polite"></div>
         <nav class="pagination" id="pagination" aria-label="Пагінація каталогу"></nav>

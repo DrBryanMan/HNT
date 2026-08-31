@@ -1,10 +1,14 @@
+import { normalizeGenres } from "./catalog-data.js";
+import { createCustomSelect } from "./custom-select.js";
 import { formatMediaType, formatScore, getDisplayTitle } from "./formatters.js";
+import { createGenreFilter, genreKey } from "./genre-filter.js";
 import { iconMarkup } from "./icons.js";
+import { createYearSlider } from "./year-slider.js";
 
 const PAGE_SIZE = 50;
 const PAGINATION_RADIUS = 2;
 
-export function createCatalogController(elements, catalogs, ignoredSlugs) {
+export function createCatalogController(elements, catalogs, ignoredSlugs, genres) {
   const state = {
     catalogMode: "filtered",
     ignoredSlugs,
@@ -12,7 +16,10 @@ export function createCatalogController(elements, catalogs, ignoredSlugs) {
     page: 1,
     query: "",
     type: "all",
+    yearFrom: "all",
+    yearTo: "all",
     sort: "score-desc",
+    genres: new Map(),
   };
 
   elements.releaseModalClose.innerHTML = iconMarkup("x", 18);
@@ -27,7 +34,7 @@ export function createCatalogController(elements, catalogs, ignoredSlugs) {
         catalogs.filtered.splice(itemIndex, 1);
       }
       setFeedback(elements, `Видалено "${getDisplayTitle(item)}" з відфільтрованого JSON.`, "success");
-      syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+      syncFilterOptions(typeSelect, yearSlider, getActiveItems(catalogs, state, ignoredSlugs), state);
       render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
     } catch (error) {
       setFeedback(
@@ -45,7 +52,7 @@ export function createCatalogController(elements, catalogs, ignoredSlugs) {
       await ignoreCatalogItem(item.slug);
       ignoredSlugs.add(item.slug);
       setFeedback(elements, `Додано "${getDisplayTitle(item)}" до ігнорованих.`, "success");
-      syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+      syncFilterOptions(typeSelect, yearSlider, getActiveItems(catalogs, state, ignoredSlugs), state);
       render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
     } catch (error) {
       setFeedback(elements, "Не вдалося зберегти ігнорований тайтл.", "error");
@@ -68,24 +75,73 @@ export function createCatalogController(elements, catalogs, ignoredSlugs) {
     }
   });
 
-  fillTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs));
-  render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+  const initialItems = getActiveItems(catalogs, state, ignoredSlugs);
+  const [minYearBound, maxYearBound] = getYearBounds(initialItems);
 
-  const updateFilters = () => {
-    state.query = elements.search.value.trim().toLowerCase();
-    state.type = elements.typeFilter.value;
-    state.sort = elements.sortOrder.value;
+  const typeSelect = createCustomSelect({
+    container: elements.typeFilterContainer,
+    id: "type-filter",
+    options: buildTypeOptions(initialItems),
+    value: state.type,
+    onChange: (value) => {
+      state.type = value;
+      state.page = 1;
+      render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+    },
+  });
+
+  const sortSelect = createCustomSelect({
+    container: elements.sortOrderContainer,
+    id: "sort-order",
+    options: [
+      { value: "score-desc", label: "Рейтинг ↓" },
+      { value: "score-asc", label: "Рейтинг ↑" },
+      { value: "title-asc", label: "Назва А-Я" },
+    ],
+    value: state.sort,
+    onChange: (value) => {
+      state.sort = value;
+      state.page = 1;
+      render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+    },
+  });
+
+  const yearSlider = createYearSlider({
+    container: elements.yearRangeContainer,
+    minSlider: elements.yearMinSlider,
+    maxSlider: elements.yearMaxSlider,
+    fillEl: elements.yearRangeFill,
+    minBadge: elements.yearFromBadge,
+    maxBadge: elements.yearToBadge,
+    minYear: minYearBound,
+    maxYear: maxYearBound,
+    valueFrom: state.yearFrom,
+    valueTo: state.yearTo,
+    onChange: ({ yearFrom, yearTo }) => {
+      state.yearFrom = yearFrom;
+      state.yearTo = yearTo;
+      state.page = 1;
+      render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+    },
+  });
+
+  createGenreFilter(elements, normalizeGenres(genres), state, () => {
     state.page = 1;
     render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
-  };
+  });
 
-  elements.filters.addEventListener("input", updateFilters);
-  elements.filters.addEventListener("change", updateFilters);
+  render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+
+  elements.search?.addEventListener("input", () => {
+    state.query = elements.search.value.trim().toLowerCase();
+    state.page = 1;
+    render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
+  });
 
   elements.showAll.addEventListener("change", () => {
     state.catalogMode = elements.showAll.checked ? "all" : "filtered";
     state.page = 1;
-    syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+    syncFilterOptions(typeSelect, yearSlider, getActiveItems(catalogs, state, ignoredSlugs), state);
     elements.title.textContent = elements.showAll.checked
       ? "Усі тайтли"
       : "Тайтли без українського перекладу";
@@ -95,7 +151,7 @@ export function createCatalogController(elements, catalogs, ignoredSlugs) {
   elements.showIgnored.addEventListener("change", () => {
     state.showIgnored = elements.showIgnored.checked;
     state.page = 1;
-    syncTypeFilter(elements.typeFilter, getActiveItems(catalogs, state, ignoredSlugs), state);
+    syncFilterOptions(typeSelect, yearSlider, getActiveItems(catalogs, state, ignoredSlugs), state);
     render(elements, catalogs, state, deleteItem, ignoreItem, showReleaseTeams);
   });
 }
@@ -117,34 +173,35 @@ async function ignoreCatalogItem(slug) {
   }
 }
 
-function syncTypeFilter(select, items, state) {
-  const selectedType = state.type;
-  select.replaceChildren(createTypeOption("all", "Усі"));
-  fillTypeFilter(select, items);
-
-  const hasSelectedType = [...select.options].some((option) => option.value === selectedType);
-  state.type = hasSelectedType ? selectedType : "all";
-  select.value = state.type;
-}
-
-function fillTypeFilter(select, items) {
-  const types = [...new Set(items.map((item) => item.mediaType))].toSorted();
-
-  for (const type of types) {
-    select.append(createTypeOption(type, formatMediaType(type)));
+function getYearBounds(items) {
+  const years = items
+    .map((item) => item.year)
+    .filter((year) => typeof year === "number" && Number.isInteger(year) && year > 1900);
+  if (years.length === 0) {
+    return [1917, 2027];
   }
+  return [Math.min(...years), Math.max(...years)];
 }
 
-function createTypeOption(value, label) {
-  const option = document.createElement("option");
-  option.value = value;
-  option.textContent = label;
-  return option;
+function buildTypeOptions(items) {
+  const types = [...new Set(items.map((item) => item.mediaType))].toSorted();
+  return [
+    { value: "all", label: "Усі" },
+    ...types.map((type) => ({ value: type, label: formatMediaType(type) })),
+  ];
+}
+
+function syncFilterOptions(typeSelect, yearSlider, items, state) {
+  const typeOptions = buildTypeOptions(items);
+  typeSelect.setOptions(typeOptions, state.type);
+
+  const [minYear, maxYear] = getYearBounds(items);
+  yearSlider.setBounds(minYear, maxYear);
 }
 
 function getActiveItems(catalogs, state, ignoredSlugs) {
   const items = catalogs[state.catalogMode];
-  if (state.catalogMode === "all" || state.showIgnored) {
+  if (state.showIgnored) {
     return items;
   }
   return items.filter((item) => !ignoredSlugs.has(item.slug));
@@ -181,7 +238,7 @@ function clampPage(page, totalPages) {
 }
 
 function getStatsText(totalCount) {
-  return `${totalCount} тайтлів`;
+  return `${totalCount}`;
 }
 
 function renderPagination(container, state, totalPages, onPageChange) {
@@ -288,6 +345,8 @@ function getVisibleItems(items, state) {
   return items
     .filter((item) => matchesQuery(item, state.query))
     .filter((item) => state.type === "all" || item.mediaType === state.type)
+    .filter((item) => matchesYearRange(item, state))
+    .filter((item) => matchesGenres(item, state))
     .toSorted((left, right) => compareItems(left, right, state.sort));
 }
 
@@ -296,8 +355,38 @@ function matchesQuery(item, query) {
     return true;
   }
 
-  const haystack = [item.titleUa, item.titleJa, item.slug].join(" ").toLowerCase();
+  const haystack = [item.titleUa, item.titleEn, item.titleJa, item.slug].join(" ").toLowerCase();
   return haystack.includes(query);
+}
+
+function matchesYearRange(item, state) {
+  if (state.yearFrom !== "all" && (item.year === null || item.year < Number(state.yearFrom))) {
+    return false;
+  }
+  if (state.yearTo !== "all" && (item.year === null || item.year > Number(state.yearTo))) {
+    return false;
+  }
+  return true;
+}
+
+function matchesGenres(item, state) {
+  if (state.genres.size === 0) {
+    return true;
+  }
+
+  const itemGenreKeys = new Set(item.genres.map((genre) => genreKey(genre)));
+
+  for (const { genre, mode } of state.genres.values()) {
+    const hasGenre = itemGenreKeys.has(genreKey(genre));
+    if (mode === "include" && !hasGenre) {
+      return false;
+    }
+    if (mode === "exclude" && hasGenre) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function compareItems(left, right, sort) {

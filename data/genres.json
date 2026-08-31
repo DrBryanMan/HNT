@@ -1,0 +1,382 @@
+[
+  {
+    "name_ua": "Джьосей",
+    "name_en": "Josei",
+    "type": "demographic"
+  },
+  {
+    "name_ua": "Для дітей",
+    "name_en": "Kids",
+    "type": "demographic"
+  },
+  {
+    "name_ua": "Сейнен",
+    "name_en": "Seinen",
+    "type": "demographic"
+  },
+  {
+    "name_ua": "Шьоджьо",
+    "name_en": "Shoujo",
+    "type": "demographic"
+  },
+  {
+    "name_ua": "Шьонен",
+    "name_en": "Shounen",
+    "type": "demographic"
+  },
+  {
+    "name_ua": "Еротика",
+    "name_en": "Erotica",
+    "type": "explicit"
+  },
+  {
+    "name_ua": "Еччі",
+    "name_en": "Ecchi",
+    "type": "explicit"
+  },
+  {
+    "name_ua": "Хентай",
+    "name_en": "Hentai",
+    "type": "explicit"
+  },
+  {
+    "name_ua": "Авангард",
+    "name_en": "Avant Garde",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Бойовик",
+    "name_en": "Action",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Буденність",
+    "name_en": "Slice of Life",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Відзначений нагородами",
+    "name_en": "Award Winning",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Драма",
+    "name_en": "Drama",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Дівчаче кохання",
+    "name_en": "Girls Love",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Жахи",
+    "name_en": "Horror",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Загадкове",
+    "name_en": "Mystery",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Комедія",
+    "name_en": "Comedy",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Надприродне",
+    "name_en": "Supernatural",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Пригоди",
+    "name_en": "Adventure",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Про їжу",
+    "name_en": "Gourmet",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Романтика",
+    "name_en": "Romance",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Спорт",
+    "name_en": "Sports",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Трилер",
+    "name_en": "Suspense",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Фантастика",
+    "name_en": "Sci-Fi",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Фентезі",
+    "name_en": "Fantasy",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Хлопчаче кохання",
+    "name_en": "Boys Love",
+    "type": "genre"
+  },
+  {
+    "name_ua": "Антропоморфізм",
+    "name_en": "Anthropomorphic",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Бойовий спорт",
+    "name_en": "Combat Sports",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Бойові мистецтва",
+    "name_en": "Martial Arts",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Вампіри",
+    "name_en": "Vampire",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Виживання",
+    "name_en": "Survival",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Виконавче мистецтво",
+    "name_en": "Performing Arts",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Високі ставки",
+    "name_en": "High Stakes Game",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Візуальне мистецтво",
+    "name_en": "Visual Arts",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Війна",
+    "name_en": "Military",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Гарем",
+    "name_en": "Harem",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Гонки",
+    "name_en": "Racing",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Гротеск",
+    "name_en": "Gore",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Детектив",
+    "name_en": "Detective",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Догляд за дітьми",
+    "name_en": "Childcare",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Дівчина-чарівниця",
+    "name_en": "Mahou Shoujo",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Жарти",
+    "name_en": "Gag Humor",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Зміна статі",
+    "name_en": "Magical Sex Shift",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Командний спорт",
+    "name_en": "Team Sports",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Комп'ютерні ігри",
+    "name_en": "Video Game",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Космос",
+    "name_en": "Space",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Культура отаку",
+    "name_en": "Otaku Culture",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Любовний багатокутник",
+    "name_en": "Love Polygon",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Медицина",
+    "name_en": "Medical",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Мехи",
+    "name_en": "Mecha",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Милі дівчата роблять милі речі",
+    "name_en": "CGDCT",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Музика",
+    "name_en": "Music",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Міфологія",
+    "name_en": "Mythology",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Організована злочинність",
+    "name_en": "Organized Crime",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Освітнє",
+    "name_en": "Educational",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Пародія",
+    "name_en": "Parody",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Переодягання",
+    "name_en": "Crossdressing",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Переродження",
+    "name_en": "Reincarnation",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Подорожі в часі",
+    "name_en": "Time Travel",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Порушники",
+    "name_en": "Delinquents",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Про дорослих",
+    "name_en": "Adult Cast",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Психологія",
+    "name_en": "Psychological",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Реверсивний гарем",
+    "name_en": "Reverse Harem",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Робота",
+    "name_en": "Workplace",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Романтичний підтекст",
+    "name_en": "Romantic Subtext",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Самураї",
+    "name_en": "Samurai",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Стратегія",
+    "name_en": "Strategy Game",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Супергерої",
+    "name_en": "Super Power",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Тварини",
+    "name_en": "Pets",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Школа",
+    "name_en": "School",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Шоу-біз",
+    "name_en": "Showbiz",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Ідоли (дівчата)",
+    "name_en": "Idols (Female)",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Ідоли (чоловіки)",
+    "name_en": "Idols (Male)",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Ісекай",
+    "name_en": "Isekai",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Історичне",
+    "name_en": "Historical",
+    "type": "theme"
+  },
+  {
+    "name_ua": "Іяшікей",
+    "name_en": "Iyashikei",
+    "type": "theme"
+  }
+]

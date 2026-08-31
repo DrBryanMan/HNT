@@ -11,6 +11,20 @@ export async function loadCatalog(url) {
   return items.map(normalizeItem).filter(Boolean);
 }
 
+export function normalizeGenres(genres) {
+  if (!Array.isArray(genres)) {
+    return [];
+  }
+
+  return genres
+    .filter((genre) => genre && genre.name_ua)
+    .map((genre) => ({
+      nameUa: genre.name_ua,
+      nameEn: genre.name_en || "",
+      type: genre.type || "genre",
+    }));
+}
+
 function normalizeItem(item) {
   if (!item || !item.slug) {
     return null;
@@ -19,6 +33,7 @@ function normalizeItem(item) {
   return {
     mediaType: item.media_type || "unknown",
     titleUa: item.title_ua || "",
+    titleEn: item.title_en || "",
     titleJa: item.title_ja || "",
     image: item.image || "",
     releaseCount: Number.isInteger(Number(item.release_count)) ? Number(item.release_count) : 0,
@@ -26,6 +41,8 @@ function normalizeItem(item) {
       ? item.release_teams.filter((team) => team && team.name)
       : [],
     score: Number.isFinite(Number(item.score)) ? Number(item.score) : null,
+    year: Number.isInteger(Number(item.year)) ? Number(item.year) : null,
+    genres: normalizeGenres(item.genres),
     slug: item.slug,
     hikkaUrl: `${HIKKA_ANIME_URL}${item.slug}`,
   };

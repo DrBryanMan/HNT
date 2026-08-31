@@ -127,10 +127,15 @@ def prune_filtered_catalog(
     source_items: list[dict], output_path: Path, released_slugs: set[str]
 ) -> tuple[int, int, bool]:
     created = not output_path.exists()
-    items = source_items if created else read_json(output_path)
+    source_by_slug = {item["slug"]: item for item in source_items if isinstance(item, dict) and item.get("slug")}
+    if created:
+        items = source_items
+    else:
+        existing_items = read_json(output_path)
+        items = [source_by_slug.get(item.get("slug"), item) for item in existing_items]
     kept_items = [item for item in items if not should_remove(item, released_slugs)]
     removed = len(items) - len(kept_items)
-    if created or removed:
+    if created or removed or not created:
         save_catalog(output_path, kept_items)
     return len(kept_items), removed, created
 
