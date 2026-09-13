@@ -9,7 +9,7 @@ on:
       mode:
         description: 'Режим парсингу'
         required: true
-        default: 'all'
+        default: 'latest'
         type: choice
         options:
           - all
