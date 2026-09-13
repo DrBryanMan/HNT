@@ -1,0 +1,57 @@
+name: Щомісячне оновлення каталогу
+
+on:
+  schedule:
+    # Запуск 1-го числа кожного місяця о 03:00 UTC
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Режим парсингу'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - latest
+
+permissions:
+  contents: write
+
+jobs:
+  update-catalog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Перевірка коду (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Налаштування Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Запуск парсера Hikka
+        run: |
+          MODE="${{ inputs.mode }}"
+          if [ -z "$MODE" ]; then
+            MODE="all"
+          fi
+          python scripts/fetch_hikka_anime.py "$MODE"
+
+      - name: Фільтрація каталогу та оновлення жанрів
+        run: |
+          python scripts/filter_anime_catalog.py
+          python scripts/build_genres_catalog.py
+
+      - name: Збереження оновлених даних
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/anime.json data/anime-filtered.json data/genres.json
+          if git diff --staged --quiet; then
+            echo "Змін у даних немає, комміт не потрібен."
+          else
+            git commit -m "chore(data): автоматичне щомісячне оновлення каталогу"
+            git push
+          fi

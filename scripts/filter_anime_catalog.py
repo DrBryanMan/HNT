@@ -5,11 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import defaultdict
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -22,25 +29,34 @@ CPR_TEAMS_URL = f"{CPR_BASE_URL}TeamsDB.json"
 USER_AGENT = "HikkaNotTranslated-Codex/2.0"
 
 
+def display_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(PROJECT_ROOT).as_posix())
+    except ValueError:
+        return str(path)
+
+
 def read_json(path: Path) -> list[dict]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
-        raise ValueError(f"{path} must contain a JSON array")
+        raise ValueError(f"Файл {path} має містити JSON-масив")
     return data
 
 
 def download_json(url: str) -> list[dict]:
+    filename = urlparse(url).path.split("/")[-1] or url
+    print(f"Завантаження {filename} з CPRcatalog...", flush=True)
     request = Request(url, headers={"Accept": "application/json", "User-Agent": USER_AGENT})
     try:
         with urlopen(request, timeout=60) as response:
             data = json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
-        raise RuntimeError(f"CPR catalog returned HTTP {error.code}: {url}") from error
+        raise RuntimeError(f"CPRcatalog повернув HTTP {error.code}: {url}") from error
     except (URLError, TimeoutError) as error:
-        raise RuntimeError(f"Could not download CPR catalog: {error}") from error
+        raise RuntimeError(f"Не вдалося завантажити CPRcatalog ({filename}): {error}") from error
 
     if not isinstance(data, list):
-        raise ValueError(f"CPR catalog must contain a JSON array: {url}")
+        raise ValueError(f"CPRcatalog має містити JSON-масив: {url}")
     return data
 
 
@@ -147,14 +163,20 @@ def generate_filtered_catalog(
     cpr_releases_url: str = CPR_RELEASES_URL,
     cpr_teams_url: str = CPR_TEAMS_URL,
 ) -> tuple[int, int, bool]:
+    print(f"Зчитування {display_path(source_path)}...", flush=True)
     source_items = read_json(source_path)
+    titles_data = download_json(cpr_catalog_url)
+    releases_data = download_json(cpr_releases_url)
+    teams_data = download_json(cpr_teams_url)
+    print("Обробка релізів та фільтрація каталогу...", flush=True)
     metadata, released_slugs = build_release_metadata(
-        download_json(cpr_catalog_url),
-        download_json(cpr_releases_url),
-        download_json(cpr_teams_url),
+        titles_data,
+        releases_data,
+        teams_data,
     )
     if update_source_metadata(source_items, metadata):
         save_catalog(source_path, source_items)
+        print(f"Оновлено метадані в {display_path(source_path)}", flush=True)
     return prune_filtered_catalog(source_items, output_path, released_slugs)
 
 
@@ -177,8 +199,11 @@ def main() -> None:
         cpr_releases_url=args.cpr_releases_url,
         cpr_teams_url=args.cpr_teams_url,
     )
-    action = "created" if created else "pruned"
-    print(f"{action.capitalize()} {args.output}: {saved} titles remain, {removed} removed")
+    action = "Створено" if created else "Відфільтровано"
+    print(
+        f"{action} {display_path(args.output)} (залишилось тайтлів: {saved}, вилучено: {removed})",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":

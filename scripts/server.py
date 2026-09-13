@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -15,12 +16,25 @@ from filter_anime_catalog import DEFAULT_OUTPUT as FILTERED_DATA_FILE
 from filter_anime_catalog import generate_filtered_catalog
 
 
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
+
+
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5173
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = ROOT_DIR / "data" / "anime.json"
 IGNORED_FILE = ROOT_DIR / "data" / "anime-ignored.json"
 GENRES_FILE = ROOT_DIR / "data" / "genres.json"
+
+
+def display_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(ROOT_DIR).as_posix())
+    except ValueError:
+        return str(path)
 
 
 class CatalogRequestHandler(SimpleHTTPRequestHandler):
@@ -124,27 +138,28 @@ def main() -> None:
     try:
         saved, removed, created = generate_filtered_catalog()
     except (FileNotFoundError, json.JSONDecodeError, RuntimeError, ValueError) as error:
-        raise SystemExit(f"Could not generate filtered catalog: {error}") from error
+        raise SystemExit(f"Не вдалося згенерувати відфільтрований каталог: {error}") from error
 
+    action = "Створено" if created else "Відфільтровано"
     print(
-        f"{'Created' if created else 'Pruned'} {FILTERED_DATA_FILE} "
-        f"({saved} titles remain; {removed} removed)"
+        f"{action} {display_path(FILTERED_DATA_FILE)} "
+        f"(залишилось тайтлів: {saved}, вилучено: {removed})",
+        flush=True,
     )
 
     try:
         genres_count = build_genres_catalog(source_path=DATA_FILE, output_path=GENRES_FILE)
     except (FileNotFoundError, json.JSONDecodeError, ValueError) as error:
-        raise SystemExit(f"Could not build genres catalog: {error}") from error
+        raise SystemExit(f"Не вдалося побудувати каталог жанрів: {error}") from error
 
-    print(f"Saved {GENRES_FILE}: {genres_count} unique genres/themes")
+    print(f"Збережено {display_path(GENRES_FILE)}: {genres_count} унікальних жанрів/тем", flush=True)
 
     server = ThreadingHTTPServer((args.host, args.port), CatalogRequestHandler)
-    print(f"Serving catalog at http://{args.host}:{args.port}")
-    print(f"Source catalog: {DATA_FILE}")
+    print(f"Сервер запущено: http://{args.host}:{args.port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopped")
+        print("\nСервер зупинено.")
     finally:
         server.server_close()
 

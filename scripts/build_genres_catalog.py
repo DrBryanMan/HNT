@@ -5,7 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -13,10 +20,17 @@ SOURCE_FILE = PROJECT_ROOT / "data" / "anime.json"
 DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "genres.json"
 
 
+def display_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(PROJECT_ROOT).as_posix())
+    except ValueError:
+        return str(path)
+
+
 def read_json(path: Path) -> list[dict]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
-        raise ValueError(f"{path} must contain a JSON array")
+        raise ValueError(f"Файл {path} має містити JSON-масив")
     return data
 
 
@@ -49,6 +63,7 @@ def extract_unique_genres(items: list[dict]) -> list[dict]:
 
 
 def build_genres_catalog(source_path: Path = SOURCE_FILE, output_path: Path = DEFAULT_OUTPUT) -> int:
+    print(f"Збирання каталогу жанрів та тем з {display_path(source_path)}...", flush=True)
     items = read_json(source_path)
     genres = extract_unique_genres(items)
     save_json(output_path, genres)
@@ -65,7 +80,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     count = build_genres_catalog(source_path=args.input, output_path=args.output)
-    print(f"Saved {args.output}: {count} unique genres/themes")
+    print(f"Збережено {display_path(args.output)}: {count} унікальних жанрів/тем", flush=True)
 
 
 if __name__ == "__main__":
